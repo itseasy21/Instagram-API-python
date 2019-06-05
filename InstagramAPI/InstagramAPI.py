@@ -650,6 +650,12 @@ class InstagramAPI:
     def getUsernameInfo(self, usernameId):
         return self.SendRequest('users/' + str(usernameId) + '/info/')
 
+    def getInfoByName(self, username):
+    	#Function 'getInfoByName' in Request/People.php uses endpoint 'https://i.instagram.com/api/v1/users/{username}/usernameinfo/'
+    	#Currently returns response with message 'useragent mismatch'
+    	#Endpoint implement here is 'https://www.instagram.com/{username}/?__a=1'
+    	return self.SendRequest("{}/?__a=1".format(username), apiUrl="https://www.instagram.com/")
+
     def getSelfUsernameInfo(self):
         return self.getUsernameInfo(self.username_id)
 
@@ -945,8 +951,13 @@ class InstagramAPI:
         body += u'--{boundary}--'.format(boundary=boundary)
         return body
 
-    def SendRequest(self, endpoint, post=None, login=False):
+    def SendRequest(self, endpoint, post=None, login=False, apiUrl=None):
         verify = False  # don't show request warning
+
+        if not apiUrl:
+        	API_URL = self.API_URL
+        else:
+        	API_URL = apiUrl
 
         if (not self.isLoggedIn and not login):
             raise Exception("Not logged in!\n")
@@ -961,9 +972,9 @@ class InstagramAPI:
         while True:
             try:
                 if (post is not None):
-                    response = self.s.post(self.API_URL + endpoint, data=post, verify=verify)
+                    response = self.s.post(API_URL + endpoint, data=post, verify=verify)
                 else:
-                    response = self.s.get(self.API_URL + endpoint, verify=verify)
+                    response = self.s.get(API_URL + endpoint, verify=verify)
                 break
             except Exception as e:
                 print('Except on SendRequest (wait 60 sec and resend): ' + str(e))
@@ -1050,3 +1061,21 @@ class InstagramAPI:
             except KeyError as e:
                 break
         return liked_items
+
+    def getTotalFollowers_optimized(self, usernameId):
+    	self.getUsernameInfo(usernameId)
+    	info = self.LastJson
+    	return info['user']['follower_count']
+
+    def getTotalFollowings_optimized(self, usernameId):
+    	self.getUsernameInfo(usernameId)
+    	info = self.LastJson
+    	return info['user']['following_count']
+
+
+    def getUserIdForName(self, username):
+    	self.getInfoByName(username)
+    	info = self.LastJson
+    	return info['graphql']['user']['id']
+
+
